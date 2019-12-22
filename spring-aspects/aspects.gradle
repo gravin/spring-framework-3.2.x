@@ -23,7 +23,9 @@ compileJava  {
 
 	ext.sourceCompatibility = project(":spring-core").compileJava.sourceCompatibility
 	ext.targetCompatibility = project(":spring-core").compileJava.targetCompatibility
-
+	
+	println "获取的参数sourceCompatibility："+ext.sourceCompatibility
+	
 	doLast{
 		ant.taskdef(resource: "org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties",
 				classpath: configurations.ajc.asPath)
