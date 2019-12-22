@@ -104,7 +104,7 @@ class ConstructorResolver {
 
 		BeanWrapperImpl bw = new BeanWrapperImpl();
 		this.beanFactory.initBeanWrapper(bw);
-
+// 整个方法就是为了获取 constructorToUse, argsToUse 以实例化bean
 		Constructor<?> constructorToUse = null;
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
@@ -113,6 +113,17 @@ class ConstructorResolver {
 			argsToUse = explicitArgs;
 		}
 		else {
+			/**
+			 * 先看缓存中有没有，如有，取缓存，此处和下面这一段相对应
+			 *
+			 * 在非explicitArgs调用时，即从mbd里取参数，处理完毕放入缓存
+			 *
+			 * 			if (explicitArgs == null) {
+			 * 				argsHolderToUse.storeCache(mbd, constructorToUse);
+			 *          }
+			 *
+ 			 */
+
 			Object[] argsToResolve = null;
 			synchronized (mbd.constructorArgumentLock) {
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
