@@ -798,11 +798,11 @@ project("spring-aspects") {
         testCompile("javax.mail:mail:1.4.7")
     }
 
-    eclipse.project {
-        natures += "org.eclipse.ajdt.ui.ajnature"
-        buildCommands = [new org.gradle.plugins.ide.eclipse.model.
-                BuildCommand("org.eclipse.ajdt.core.ajbuilder")]
-    }
+//    eclipse.project {
+//        natures += "org.eclipse.ajdt.ui.ajnature"
+//        buildCommands = [new org.gradle.plugins.ide.eclipse.model.
+//                BuildCommand("org.eclipse.ajdt.core.ajbuilder")]
+//    }
 }
 
 project("spring-framework-bom") {
