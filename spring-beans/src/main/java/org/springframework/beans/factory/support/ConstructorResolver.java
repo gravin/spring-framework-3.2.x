@@ -142,6 +142,7 @@ class ConstructorResolver {
 
 		if (constructorToUse == null) {
 			// Need to resolve the constructor.
+			// 判断bean是否有autowire='constructor'
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
@@ -153,6 +154,12 @@ class ConstructorResolver {
 			else {
 				ConstructorArgumentValues cargs = mbd.getConstructorArgumentValues();
 				resolvedValues = new ConstructorArgumentValues();
+				// 把原始配置参数值转化为转化后的配置参数值，并计算出参数的最小个数
+				// 计算indexedArgumentValues.size() + genericArgumentValues.size() 配置参数总大小再与索引中最大的比较，取更大的索引+1
+				// 此处看起来有点问题，感觉这里大于等于才对
+				//  		if (index > minNrOfArgs) {
+				//				minNrOfArgs = index + 1;
+				//			}
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
 
@@ -170,11 +177,14 @@ class ConstructorResolver {
 							"] from ClassLoader [" + beanClass.getClassLoader() + "] failed", ex);
 				}
 			}
+			// 对给定的构造函数排序：先按方法修饰符排序：先按是公有构造器排前面，再按参数数量倒序
 			AutowireUtils.sortConstructors(candidates);
+			// 最小匹配权重，权重越小，越接近我们要找的目标构造函数
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
 			List<Exception> causes = null;
 
+			// 遍历所有构造函数候选者，找出符合条件的构造函数
 			for (int i = 0; i < candidates.length; i++) {
 				Constructor<?> candidate = candidates[i];
 				Class<?>[] paramTypes = candidate.getParameterTypes();
@@ -182,8 +192,11 @@ class ConstructorResolver {
 				if (constructorToUse != null && argsToUse.length > paramTypes.length) {
 					// Already found greedy constructor that can be satisfied ->
 					// do not look any further, there are only less greedy constructors left.
+					// 如果已经找到了constructorToUse，当发现参数值数目大于当前候选构造器参数数目时，说明不需要再找了
+					// （由于是按参数数目大小倒序的，其余的候选构造器要么是私有，要么参数数量比这少，故不需再找。如果是相同，则要进行下面的权重比较）
 					break;
 				}
+				// 前面已经根据原始配置参数值计算出了能适用的构造器的最小参数值，比这还小，肯定是不适用。
 				if (paramTypes.length < minNrOfArgs) {
 					continue;
 				}
@@ -192,6 +205,7 @@ class ConstructorResolver {
 				if (resolvedValues != null) {
 					try {
 						String[] paramNames = null;
+						// 如果没有用ConstructorProperties注解，则使有asm到局部变量表里去取变量名，此处如果编译器版本不同会取不到，jdk8就不能使用asm4
 						if (constructorPropertiesAnnotationAvailable) {
 							paramNames = ConstructorPropertiesChecker.evaluate(candidate, paramTypes.length);
 						}
@@ -201,6 +215,7 @@ class ConstructorResolver {
 								paramNames = pnd.getParameterNames(candidate);
 							}
 						}
+						// 此处是关键部分，根据构造器，获取匹配的构造器参数值
 						argsHolder = createArgumentArray(
 								beanName, mbd, resolvedValues, bw, paramTypes, paramNames, candidate, autowiring);
 					}
@@ -684,7 +699,7 @@ class ConstructorResolver {
 		TypeConverter customConverter = this.beanFactory.getCustomTypeConverter();
 		TypeConverter converter = (customConverter != null ? customConverter : bw);
 
-		ArgumentsHolder args = new ArgumentsHolder(paramTypes.length);
+		ArgumentsHolder args = new ArgumentsHolder(paramTypes.length); // 参数值数组大小肯定是和参数类型的数量大小是一样的。
 		Set<ConstructorArgumentValues.ValueHolder> usedValueHolders =
 				new HashSet<ConstructorArgumentValues.ValueHolder>(paramTypes.length);
 		Set<String> autowiredBeanNames = new LinkedHashSet<String>(4);
