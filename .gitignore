@@ -21,6 +21,7 @@ buildSrc/build
 /spring-*/build
 target/
 !spring-aop/src/main/java/org/springframework/aop/target/
+!spring-aop/src/main/java/org/springframework/aop/framework/autoproxy/target/
 
 # Eclipse artifacts, including WTP generated manifests
 .classpath
