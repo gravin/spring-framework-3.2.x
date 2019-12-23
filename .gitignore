@@ -20,6 +20,7 @@ pom.xml
 buildSrc/build
 /spring-*/build
 target/
+!spring-aop/src/main/java/org/springframework/aop/target/
 
 # Eclipse artifacts, including WTP generated manifests
 .classpath
