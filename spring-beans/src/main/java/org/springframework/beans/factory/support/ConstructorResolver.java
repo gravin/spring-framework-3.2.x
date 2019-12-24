@@ -142,7 +142,7 @@ class ConstructorResolver {
 
 		if (constructorToUse == null) {
 			// Need to resolve the constructor.
-			// 判断bean是否有autowire='constructor'
+			// 判断bean配置是否有autowire='constructor'
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
@@ -179,12 +179,26 @@ class ConstructorResolver {
 			}
 			// 对给定的构造函数排序：先按方法修饰符排序：先按是公有构造器排前面，再按参数数量倒序
 			AutowireUtils.sortConstructors(candidates);
-			// 最小匹配权重，权重越小，越接近我们要找的目标构造函数
+			// 在下面的遍历中，把现有的constructorToUse的typeDiffWeight放在此参数中，每一个候选者都与其比较选择更小的匹配权重。
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
 			List<Exception> causes = null;
 
-			// 遍历所有构造函数候选者，找出符合条件的构造函数
+			/**
+			 *  遍历所有构造函数候选者，找出符合条件的构造函数
+			 *  Candidate:
+			 *  	public examples.ExampleBean(int,java.lang.String)}
+			 *  	public examples.ExampleBean(java.lang.String,java.lang.String)}
+			 *
+			 *  配置文件:
+			 *      <bean id="exampleBean" class="examples.ExampleBean">
+			 *         <constructor-arg value="7500000x"/>
+			 *         <constructor-arg  value="42"/>
+			 *     </bean>
+			 *
+			 *  遍历每一个Candidate
+			 *
+			 */
 			for (int i = 0; i < candidates.length; i++) {
 				Constructor<?> candidate = candidates[i];
 				Class<?>[] paramTypes = candidate.getParameterTypes();
@@ -215,7 +229,7 @@ class ConstructorResolver {
 								paramNames = pnd.getParameterNames(candidate);
 							}
 						}
-						// 此处是关键部分，根据构造器，获取匹配的构造器参数值
+						// 此处是关键部分，根据候选构造器参数顺序，参数类型，参数名称获取配置文件中的参数值配置
 						argsHolder = createArgumentArray(
 								beanName, mbd, resolvedValues, bw, paramTypes, paramNames, candidate, autowiring);
 					}
@@ -224,6 +238,14 @@ class ConstructorResolver {
 							this.beanFactory.logger.trace(
 									"Ignoring constructor [" + candidate + "] of bean '" + beanName + "': " + ex);
 						}
+						/**
+						 *
+						 * createArgumentArray 可能会抛UnsatisfiedDependencyException 异常，这是由于配置项中的值无法转换为Candidate中某一参数类型引起的。
+						 * 抛出UnsatisfiedDependencyException异常说明该Candidate对配置中的值不适用。
+						 * 如果是最后一个候选者且无其它合适的候选者，直接抛出该异常
+						 * 如果还有其它候选者，则将异常保存，尝试其它候选构造器
+						 *
+						 */
 						if (i == candidates.length - 1 && constructorToUse == null) {
 							if (causes != null) {
 								for (Exception cause : causes) {
@@ -704,16 +726,48 @@ class ConstructorResolver {
 				new HashSet<ConstructorArgumentValues.ValueHolder>(paramTypes.length);
 		Set<String> autowiredBeanNames = new LinkedHashSet<String>(4);
 
+		/**
+		 *
+		 * 配置文件:
+		 * 	     <bean id="exampleBean" class="examples.ExampleBean">
+		 * 	        <constructor-arg value="7500000年"/>
+		 * 	        <constructor-arg  value="42"/>
+		 * 	    </bean>
+		 * 遍历Candidate的参数类型数组，对每一个参数类型，找到配置值
+		 *
+		 */
 		for (int paramIndex = 0; paramIndex < paramTypes.length; paramIndex++) {
 			Class<?> paramType = paramTypes[paramIndex];
 			String paramName = (paramNames != null ? paramNames[paramIndex] : null);
 			// Try to find matching constructor argument value, either indexed or generic.
+			/**
+			 *
+			 *  先根据参数顺序,看配置中是否有相同index的配置项，如有，看是否还有name,type的attribute，如果有，要比较配置是否和Candidate中的name,type一致
+			 *
+			 *  如配置中没有参数顺序对应的index配置项，则遍历配置中的一般配置项
+			 *  如果一般配置项已经给其它参数值采用，则忽略该配置项
+			 *  如果一般配置项有配置name,则参数name不能和配置项的name不一致
+			 *  如果一般配置项有配置type,则参数type不能和配置项的type不一致
+			 *  如果一般配置项 name,type都没配置，说明只配置了value。如果解析后的value类型为参数类型的子类，或者与参数类型是包装类与基础类的关系，则也会被选中。
+			 *
+			 */
 			ConstructorArgumentValues.ValueHolder valueHolder =
 					resolvedValues.getArgumentValue(paramIndex, paramType, paramName, usedValueHolders);
 			// If we couldn't find a direct match and are not supposed to autowire,
 			// let's try the next generic, untyped argument value as fallback:
 			// it could match after type conversion (for example, String -> int).
 			if (valueHolder == null && !autowiring) {
+				/**
+				 *  可见，如果有多个只配置了value的配置项，那么采用值的时候是按照配置项的顺序来采用的。
+				 *  	   <bean id="exampleBean" class="examples.ExampleBean">
+				 * 		       <constructor-arg value="7500000年"/>
+				 * 		       <constructor-arg  value="42"/>
+				 * 		   </bean>
+				 *  如上，如果构造器为 public examples.ExampleBean(int,java.lang.String)}， 那么就是按照配置项顺序来填充参数数组的。
+				 *  不过填充的参数值在下面还会调用convertIfNecessary方法来转换，如上面7500000年无法转换为int,则会抛UnsatisfiedDependencyException异常
+				 *  对于异常的处理
+				 *  @see #autowireConstructor(String, RootBeanDefinition, Constructor[], Object[])
+				 */
 				valueHolder = resolvedValues.getGenericArgumentValue(null, null, usedValueHolders);
 			}
 			if (valueHolder != null) {
@@ -727,6 +781,12 @@ class ConstructorResolver {
 					args.preparedArguments[paramIndex] = convertedValue;
 				}
 				else {
+					/**
+					 *  此处获取 resolvedValue的source的值，也就是 beanDefinition中的 constructorArgumentValues
+					 *
+					 *
+ 					 */
+
 					ConstructorArgumentValues.ValueHolder sourceHolder =
 							(ConstructorArgumentValues.ValueHolder) valueHolder.getSource();
 					Object sourceValue = sourceHolder.getValue();
@@ -757,6 +817,14 @@ class ConstructorResolver {
 				args.arguments[paramIndex] = convertedValue;
 				args.rawArguments[paramIndex] = originalValue;
 			}
+			/**
+			 *
+			 * 此处判断 valueHolder == null，如果不是autoWire即抛异常，非autowire则需要每个参数类型都要有对应的配置项
+			 * 如未配置抛异常
+			 *
+			 * 如果是autowire
+			 *
+			 */
 			else {
 				// No explicit match found: we're either supposed to autowire or
 				// have to fail creating an argument array for the given constructor.

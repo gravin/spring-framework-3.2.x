@@ -912,6 +912,26 @@ public abstract class ClassUtils {
 	 * Check if the right-hand side type may be assigned to the left-hand side
 	 * type, assuming setting by reflection. Considers primitive wrapper
 	 * classes as assignable to the corresponding primitive types.
+	 *
+	 * 其实就是判断下面表达式成立的条件
+	 * Left-hand = Right-hand
+	 *
+	 * 先使用java原生的isAssignableFrom来比较，
+	 *
+	 * 由于原生的对下面表达式返回
+	 * 	 System.out.println(int.class.isAssignableFrom(int.class));         true
+	 * 	 System.out.println(int.class.isAssignableFrom(long.class));		false
+	 * 	 System.out.println(int.class.isAssignableFrom(Integer.class));		false
+	 * 	 System.out.println(Integer.class.isAssignableFrom(int.class))      false
+	 *
+	 *   这里主要是考虑一边为包装类型，一边是基础类型的情况，
+	 *   如果左边右边均不是基础类型，则分支1使用java原生的isAssignableFrom来比较会返回
+	 *   如果左边右边均是基础类型，则分支1使用java原生的isAssignableFrom来比较会返回
+	 *   如果左边为基础类型，右边不为基础类型，则需要把右边映射为相应的基础类型用equals比较 分支2  -------这行是否有bug呢？
+	 *   System.out.println(ClassUtils.isAssignable(long.class,int.class)); 返回false
+	 *
+	 *   如果左边不为基础类型，那右边为基础类型，则需要把右边映射为相应的包装类型（如有）,再调用java原生的isAssignableFrom来比较，分支3
+	 *
 	 * @param lhsType the target type
 	 * @param rhsType the value type that should be assigned to the target type
 	 * @return if the target type is assignable from the value type
@@ -921,15 +941,18 @@ public abstract class ClassUtils {
 		Assert.notNull(lhsType, "Left-hand side type must not be null");
 		Assert.notNull(rhsType, "Right-hand side type must not be null");
 		if (lhsType.isAssignableFrom(rhsType)) {
+			// 1
 			return true;
 		}
 		if (lhsType.isPrimitive()) {
+			// 2
 			Class<?> resolvedPrimitive = primitiveWrapperTypeMap.get(rhsType);
 			if (resolvedPrimitive != null && lhsType.equals(resolvedPrimitive)) {
 				return true;
 			}
 		}
 		else {
+			// 3
 			Class<?> resolvedWrapper = primitiveTypeToWrapperMap.get(rhsType);
 			if (resolvedWrapper != null && lhsType.isAssignableFrom(resolvedWrapper)) {
 				return true;
@@ -942,6 +965,10 @@ public abstract class ClassUtils {
 	 * Determine if the given type is assignable from the given value,
 	 * assuming setting by reflection. Considers primitive wrapper classes
 	 * as assignable to the corresponding primitive types.
+	 *
+	 * 如果值为空，那么只要不是基础类型，就可以赋值
+	 * 如果值不为空，则判断类型是否是可以赋值的
+	 *
 	 * @param type the target type
 	 * @param value the value that should be assigned to the type
 	 * @return if the type is assignable from the value

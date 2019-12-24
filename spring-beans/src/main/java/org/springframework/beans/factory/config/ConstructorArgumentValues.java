@@ -342,10 +342,10 @@ public class ConstructorArgumentValues {
 	 * be returned again (allowing to return the next generic argument match
 	 * in case of multiple generic argument values of the same type)
 	 * @return the ValueHolder for the argument, or {@code null} if none set
+	 *
 	 */
 	public ValueHolder getArgumentValue(int index, Class<?> requiredType, String requiredName, Set<ValueHolder> usedValueHolders) {
 		Assert.isTrue(index >= 0, "Index must not be negative");
-		// 先按索引查找
 		ValueHolder valueHolder = getIndexedArgumentValue(index, requiredType, requiredName);
 		if (valueHolder == null) {
 			valueHolder = getGenericArgumentValue(requiredType, requiredName, usedValueHolders);
