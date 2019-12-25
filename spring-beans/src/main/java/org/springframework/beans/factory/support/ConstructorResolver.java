@@ -104,7 +104,7 @@ class ConstructorResolver {
 
 		BeanWrapperImpl bw = new BeanWrapperImpl();
 		this.beanFactory.initBeanWrapper(bw);
-// 整个方法就是为了获取 constructorToUse, argsToUse 以实例化bean
+        // 整个方法就是为了获取 constructorToUse, argsToUse 以实例化bean
 		Constructor<?> constructorToUse = null;
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
@@ -145,6 +145,22 @@ class ConstructorResolver {
 			// 判断bean配置是否有autowire='constructor'
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_CONSTRUCTOR);
+
+			/***
+			 * resolvedValues 用途
+			 *
+			 * beanDefinition中constructorArgumentValues里面的value值为RuntimeBeanReference,TypedStringValue etc
+			 * 此为它们转化后对应的value,如TypedStringValue转化为String,RuntimeBeanReference转化为Bean对象
+			 *
+			 * resolvedValues ValueHoder中
+			 * type,name还是拷贝的beanDefinition中指定的type,name,
+			 * value则是转化后的,
+			 * source为beanDefinition中constructorArgumentValues里面的原始ValueHolder
+			 *
+			 * @see #resolveConstructorArguments(String, RootBeanDefinition, BeanWrapper, ConstructorArgumentValues, ConstructorArgumentValues)
+			 * @see BeanDefinitionValueResolver#resolveValueIfNecessary(Object, Object)
+			 *
+			 */
 			ConstructorArgumentValues resolvedValues = null;
 
 			int minNrOfArgs;
@@ -206,8 +222,23 @@ class ConstructorResolver {
 				if (constructorToUse != null && argsToUse.length > paramTypes.length) {
 					// Already found greedy constructor that can be satisfied ->
 					// do not look any further, there are only less greedy constructors left.
-					// 如果已经找到了constructorToUse，当发现参数值数目大于当前候选构造器参数数目时，说明不需要再找了
-					// （由于是按参数数目大小倒序的，其余的候选构造器要么是私有，要么参数数量比这少，故不需再找。如果是相同，则要进行下面的权重比较）
+
+					/**
+					 *
+					 * 	如果已经找到了constructorToUse，当发现参数值数目大于当前候选构造器参数数目时，说明不需要再找了
+					 * （由于是按参数数目大小倒序的，其余的候选构造器要么是私有，要么参数数量比这少，故不需再找。如果是相同，则要进行下面的权重比较）
+					 *
+					 *  	public examples.ExampleBean(int,java.lang.String)}                        1
+					 *  	private examples.ExampleBean(java.lang.String,java.lang.String)}		  2
+					 *		public examples.ExampleBean(long,java.lang.String)}						  3
+					 *		public examples.ExampleBean(double,java.lang.String)}					  4
+					 *
+					 *  此机制使得：
+					 *      如上面构造函数为上面4个，那么最终选择的是构造函数2，因为其rawTypeDiffWeight最小
+					 *  但是如果现有构造函数再加一个
+					 *     public examples.ExampleBean(java.lang.String)}						      5
+					 *  尽管构造函数5匹配不上，但是构造函数2肯定匹配不上了。因为此处的短路机制，使得private类型的2不在遍历范围内。
+					 */
 					break;
 				}
 				// 前面已经根据原始配置参数值计算出了能适用的构造器的最小参数值，比这还小，肯定是不适用。
@@ -782,8 +813,15 @@ class ConstructorResolver {
 				}
 				else {
 					/**
-					 *  此处获取 resolvedValue的source的值，也就是 beanDefinition中的 constructorArgumentValues
+					 *  sourceValue 为beanDefinition中constructorArgumentValues里面的原始ValueHolder的value,即RuntimeBeanReference,TypedStringValue etc
+					 *  originalValue, resolvedValue 为根据beanDefinition中配置的type，value 转化后的对象
+					 *  convertedValue 为originalValue 根据paramType转换后的对象
 					 *
+					 *  因此
+					 *
+					 *  args.arguments 为可用于方法，构造函数调用的参数值
+					 *  args.rawArguments 根据beanDefintion中的设置转化后的原始值
+					 *  args.preparedArguments 为beanDefintion加载后的RuntimeBeanReference,TypedStringValue etc值
 					 *
  					 */
 
@@ -822,7 +860,7 @@ class ConstructorResolver {
 			 * 此处判断 valueHolder == null，如果不是autoWire即抛异常，非autowire则需要每个参数类型都要有对应的配置项
 			 * 如未配置抛异常
 			 *
-			 * 如果是autowire
+			 * 如果是autowire,则按照参数类型去找对应的Bean,找不到抛 NoSuchBeanDefinitionException 异常
 			 *
 			 */
 			else {
@@ -944,12 +982,37 @@ class ConstructorResolver {
 			// Try type difference weight on both the converted arguments and
 			// the raw arguments. If the raw weight is better, use it.
 			// Decrease raw weight by 1024 to prefer it over equal converted weight.
+			/**
+			 * 比如配置文件中是
+			 *  Candidate:
+			 *  	public examples.ExampleBean(int,java.lang.String)}
+			 *  	public examples.ExampleBean(java.lang.String,java.lang.String)}
+			 *		public examples.ExampleBean(long,java.lang.String)}
+			 *		public examples.ExampleBean(double,java.lang.String)}
+			 *  配置文件:
+			 *      <bean id="exampleBean" class="examples.ExampleBean">
+			 *         <constructor-arg value="7500000x"/>
+			 *         <constructor-arg  value="42"/>
+			 *     </bean>
+			 *
+			 *     此处比较先跟转换后的比较，
+			 *     对这四个candidate 对应的 typeDiffWeight都是 0
+			 *     但是第二个candidate 的rawTypeDiffWeight是 -1024 所以第二个优先
+			 *
+			 *     如果没有第二个candidate,则是完全按照排序时结果来（按照是否公有，参数个数倒序，此处相同，排序后仍会有个顺序），类定义中排在最后一个会先使用
+			 *
+			 */
 			int typeDiffWeight = MethodInvoker.getTypeDifferenceWeight(paramTypes, this.arguments);
 			int rawTypeDiffWeight = MethodInvoker.getTypeDifferenceWeight(paramTypes, this.rawArguments) - 1024;
 			return (rawTypeDiffWeight < typeDiffWeight ? rawTypeDiffWeight : typeDiffWeight);
 		}
 
 		public int getAssignabilityWeight(Class<?>[] paramTypes) {
+			/**
+			 * 非宽松模式的权重计算，
+			 * 也就意味着这个函数在多个构造函数参数为父子类或实现类的关系时，会全部返回（Integer.MAX_VALUE - 1024），
+			 * 这样返回统一的数字相等，spring就会认为存在有歧义的函数，不能确定使用哪一个。
+			 */
 			for (int i = 0; i < paramTypes.length; i++) {
 				if (!ClassUtils.isAssignableValue(paramTypes[i], this.arguments[i])) {
 					return Integer.MAX_VALUE;

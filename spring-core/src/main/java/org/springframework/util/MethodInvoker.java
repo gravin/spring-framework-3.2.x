@@ -293,7 +293,7 @@ public class MethodInvoker {
 	 * 如果paramType不是基础类型的情况，由于arg.getClass必然不是基础类型
 	 * 计算paramType与哪一层父类，父接口相同，每一层父类权重+2，每一层父接口权重+1
 	 *
-	 * 如果paramType是基础类型，根据当前isAssignableValue方法的定义，右边只能是其包装类。while循环比较都是不成立的，然后返回0
+	 * 如果paramType是基础类型，根据当前isAssignableValue方法为true时的定义，右边只能是其包装类。while循环比较都是不成立的，然后返回0
 	 * 当然这个方法前面也判断一下 args[i].getClass().equals(paramType)直接返回0应该是能节省一些效率的。
 	 *
 	 * @see ClassUtils#isAssignableValue(Class, Object)
