@@ -104,6 +104,10 @@ public class CglibSubclassingInstantiationStrategy extends SimpleInstantiationSt
 		 * @param args arguments to use for the constructor.
 		 * Ignored if the {@code ctor} parameter is {@code null}.
 		 * @return new instance of the dynamically generated subclass
+		 *
+		 *
+		 * cglib代理是用继承的方式实现的，setCallbackFilter 设定的方法会返回拦截器的序号对应setCallbacks数组中的拦截器
+		 *
 		 */
 		public Object instantiate(Constructor<?> ctor, Object[] args) {
 			Enhancer enhancer = new Enhancer();

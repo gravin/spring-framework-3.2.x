@@ -151,6 +151,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * resolve circular references.
 	 * @param beanName the name of the bean
 	 * @param singletonFactory the factory for the singleton object
+	 *
+	 *  在创建单例时, 加入到 singletonFactories, registeredSingletons（提前暴露，尽管singletonObjects还没值，但认为单例已注册存在）
+	 *  移除 earlySingletonObjects （本来也没有放）
+	 *  @see AbstractAutowireCapableBeanFactory#doCreateBean(String, RootBeanDefinition, Object[])
+	 *
+	 *  在
+	 *  @see AbstractBeanFactory#doGetBean(String, Class, Object[], boolean)
+	 *  @see #getSingleton(String, boolean)
 	 */
 	protected void addSingletonFactory(String beanName, ObjectFactory singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
@@ -200,6 +208,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @param singletonFactory the ObjectFactory to lazily create the singleton
 	 * with, if necessary
 	 * @return the registered singleton object
+	 *
+	 * 此处使用回调方法进行bean的创建，创建前看缓存singletonObjects中是否有beanName
+	 * 如无则需要创建，创建前要把beanName加入到 singletonsCurrentlyInCreation, 创建后移除
+	 *
+	 * 创建完成后，对象加入缓存singletonObjects，移除singletonFactories，earlySingletonObjects，beanName加入 registeredSingletons
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "'beanName' must not be null");
