@@ -50,6 +50,11 @@ package org.springframework.core.env;
  * @see ConfigurableEnvironment
  * @see SystemEnvironmentPropertySource
  * @see org.springframework.web.context.support.StandardServletEnvironment
+ *
+ *
+ * Environment
+ * 环境在容器中是一个抽象的集合，是指应用环境的2个方面: profiles和 properties.
+ *
  */
 public class StandardEnvironment extends AbstractEnvironment {
 
