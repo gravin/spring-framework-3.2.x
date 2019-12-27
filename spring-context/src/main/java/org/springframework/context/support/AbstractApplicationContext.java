@@ -447,20 +447,32 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
-			// Prepare this context for refreshing.
+			// Prepare this context for refreshing. 1。加载继承类中指定的其它property sources，2。对必需的（required)变量校验是否存在
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// Prepare the bean factory for use in this context.
+			// Prepare the bean factory for use in this context. 主要是添加 BeanPostProcessor等。
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+				// beanFactory 此处刚初始化，按照惯例，留一个可扩展方法（可在此处加入特殊的BeanPostProcessors）
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				/***
+				 *
+				 * BeanFactoryPostProcessor及继承接口BeanDefinitionRegistryPostProcessor  是用来处理修改bean定义信息的后置处理器，
+				 * 这个时候bean还没有初始化，只是定好了BeanDefinition，
+				 * 在BeanFactoryPostProcessor接口的postProcessBeanFactory方法中，我们可以修改bean的定义信息，例如修改属性的值，修改bean的scope为单例或者多例。
+				 *
+				 * BeanPostProcessor则是bean初始化前后对bean的一些操作，意思就是说bean在调用构造之后，初始化方法前后进行一些操作。
+				 *
+				 * BeanPostProcessor 可以对已经实例化，但还没有属性注入，在初始化方法调用前后进行修改
+				 * BeanFactoryPostProcessor的继承接口BeanDefinitionRegistryPostProcessor  只能对BeanDefinition进行修改，因为如果用getBean方法去修改Bean实例，会把生命周期搞乱。
+				 */
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.

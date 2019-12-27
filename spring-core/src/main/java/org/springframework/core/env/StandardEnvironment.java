@@ -77,6 +77,19 @@ public class StandardEnvironment extends AbstractEnvironment {
 	 * @see AbstractEnvironment#customizePropertySources(MutablePropertySources)
 	 * @see #getSystemProperties()
 	 * @see #getSystemEnvironment()
+	 *
+	 * systemEnvironment
+	 * 用的是 JDK System.getenv() 方法是获取指定的环境变量的值，大多于系统相关
+	 *
+	 * systemProperties
+	 * 用的是 JDK System.getProperties()
+	 *
+	 * System.getenv() 和 System.getProperties() 区别
+	 * getenv() 的返回值为 Map ;getProperties() 返回值为 Properties
+	 * getenv() 返回的是系统级别的环境变量, 例如可以直接获取环境变量名为 JAVA_HOME 的环境变量;
+	 * 而getProperties() 返回的是给对应的 JVM 设置的属性值, 它可以同过运行 java -D 来进行改变。设置方式为(这里设置file.encoding和os.name两个属性)：java -Dfile.encoding=utf-8 -Dos.name=windows7
+	 *
+	 * 此处即把jdk里面的变量加入到环璄里，这里可以看出 systemProperties 优先于 systemEnvironment（因为先加入）
 	 */
 	@Override
 	protected void customizePropertySources(MutablePropertySources propertySources) {
