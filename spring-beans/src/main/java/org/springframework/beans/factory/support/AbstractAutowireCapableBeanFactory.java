@@ -506,6 +506,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		 * 所以该参数，感觉没用
 		 * @see DefaultSingletonBeanRegistry#getSingleton(String, ObjectFactory)
 		 *
+		 *
+		 * 此处提前暴露后，在getBean("testA")时，
+		 * singletonObjects 没值，会看earlySingletonObjects有没有值，
+		 * 也没值则看singletonFactories有没值，有则调用getObject方法，取出单例创建后还没有属性注入的对象（称作earlySingletonObject）返回
+		 *
+		 * TODO: 2019/12/26  此处为什么要用ObjectFactory包装，而不是直接给出创建出的对象引用呢？
+		 * @see DefaultSingletonBeanRegistry#getSingleton(String, boolean)
+		 *
 		 */
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
@@ -526,6 +534,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		try {
 			populateBean(beanName, mbd, instanceWrapper);
 			if (exposedObject != null) {
+				/**
+				 * 按顺序调用
+				 * 1.  BeanNameAware,BeanClassLoaderAware,BeanFactoryAware 方法设置变量。
+				 * 2.  applyBeanPostProcessorsBeforeInitialization
+				 * 3.1 如实现InitializingBean接口执行afterPropertiesSet方法
+				 * 3.2 如配置文件中配置有init-method(且不是3.1方法)，则执行该初始化方法
+				 * 4.  applyBeanPostProcessorsAfterInitialization
+				 */
 				exposedObject = initializeBean(beanName, exposedObject, mbd);
 			}
 		}
@@ -566,6 +582,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Register bean as disposable.
+		// TODO: 2019/12/27 destroy method, 没有深入研究
 		try {
 			registerDisposableBeanIfNecessary(beanName, bean, mbd);
 		}
@@ -1117,6 +1134,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
 					InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+					/**
+					 * 在Bean已经实例化, 但还没有开始属性注入前，最后一次调用，
+					 * 如返回false,将终止属性注入以及其它InstantiationAwareBeanPostProcessor的调用。
+					 */
 					if (!ibp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) {
 						continueWithPropertyPopulation = false;
 						break;
@@ -1155,6 +1176,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				for (BeanPostProcessor bp : getBeanPostProcessors()) {
 					if (bp instanceof InstantiationAwareBeanPostProcessor) {
 						InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+						/**
+						 * 在属性赋值给Bean之前，对属性值进行后处理（可以用来校验属性值，也可以用来修改覆盖属性值)
+						 * @see org.springframework.beans.factory.annotation.RequiredAnnotationBeanPostProcessor#postProcessPropertyValues(PropertyValues, PropertyDescriptor[], Object, String)
+						 */
 						pvs = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);
 						if (pvs == null) {
 							return;
@@ -1233,6 +1258,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					// Do not allow eager init for type matching in case of a prioritized post-processor.
 					boolean eager = !PriorityOrdered.class.isAssignableFrom(bw.getWrappedClass());
 					DependencyDescriptor desc = new AutowireByTypeDependencyDescriptor(methodParam, eager);
+					/**
+					 *
+					 * @Autowired private List<A> alist
+					 * 将会找到所以匹配A类型的bean并注入,解析到的所有beanNames放到autowiredBeanNames中，方便后面注册依赖
+					 */
 					Object autowiredArgument = resolveDependency(desc, beanName, autowiredBeanNames, converter);
 					if (autowiredArgument != null) {
 						pvs.add(propertyName, autowiredArgument);

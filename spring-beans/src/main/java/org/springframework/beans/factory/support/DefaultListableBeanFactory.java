@@ -784,7 +784,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 	protected Object doResolveDependency(DependencyDescriptor descriptor, Class<?> type, String beanName,
 			Set<String> autowiredBeanNames, TypeConverter typeConverter) throws BeansException {
-
+		// 支持注解 @Value
 		Object value = getAutowireCandidateResolver().getSuggestedValue(descriptor);
 		if (value != null) {
 			if (value instanceof String) {
