@@ -322,7 +322,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 	public PropertyEditor findCustomEditor(Class<?> requiredType, String propertyPath) {
 		Class<?> requiredTypeToUse = requiredType;
 		if (propertyPath != null) {
-			if (this.customEditorsForPath != null) {
+			if (this.customEditorsForPath != null) { // 如果propertyPath不为空，又配置了基于属性路径的customEditorsForPath，就到其中找。
 				// Check property-specific editor first.
 				PropertyEditor editor = getCustomEditor(propertyPath, requiredType);
 				if (editor == null) {
@@ -341,7 +341,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 				requiredTypeToUse = getPropertyType(propertyPath);
 			}
 		}
-		// No property-specific editor -> check type-specific editor.
+		// No property-specific editor -> check type-specific editor. 没有基于属性的editor,则找基于类型的editor
 		return getCustomEditor(requiredTypeToUse);
 	}
 
@@ -406,7 +406,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 		if (requiredType == null || this.customEditors == null) {
 			return null;
 		}
-		// Check directly registered editor for type.
+		// Check directly registered editor for type.  直接跟据类型作为主键来找到editor, 如果找不到，则遍历查找到类型为其父类的 editor
 		PropertyEditor editor = this.customEditors.get(requiredType);
 		if (editor == null) {
 			// Check cached editor for type, registered for superclass or interface.
@@ -417,7 +417,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 				// Find editor for superclass or interface.
 				for (Iterator<Class<?>> it = this.customEditors.keySet().iterator(); it.hasNext() && editor == null;) {
 					Class<?> key = it.next();
-					if (key.isAssignableFrom(requiredType)) {
+					if (key.isAssignableFrom(requiredType)) { // requiredType 可以赋值给 key, key是其父类 todo: 此处不明白，如是其父类，不是没法转换到requiredType吗？
 						editor = this.customEditors.get(key);
 						// Cache editor for search type, to avoid the overhead
 						// of repeated assignable-from checks.

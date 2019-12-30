@@ -472,10 +472,19 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				 *
 				 * BeanPostProcessor 可以对已经实例化，但还没有属性注入，在初始化方法调用前后进行修改
 				 * BeanFactoryPostProcessor的继承接口BeanDefinitionRegistryPostProcessor  只能对BeanDefinition进行修改，因为如果用getBean方法去修改Bean实例，会把生命周期搞乱。
+				 *
+				 * 观察方法对于beanFactoryPostProcessors的执行顺序是比较混乱的的：
+				 * 大约是先执行硬编码的对象，再执行扫描注册为Bean的对象；先执行 postProcessBeanDefinitionRegistry，再执行postProcessBeanFactory
+				 * 对于硬编码对象调用this.addBeanFactoryPostProcessor();所以并未对其排序，硬编码时已知顺序。
+				 * 对于扫描注册为Bean的对象，则按priorityOrder ,order接口排序
+				 *
+				 * 参考下面，即在这一步，使用配置文件中的属性配置去更新beanDefinition中的属性值
+				 * @see org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 				 */
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				// beanFactory并未实现beanPostProcessor的自动注册，需要调用beanFactory.addBeanPostProcessor(); 而ApplicationContext则在此步自动注册
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
@@ -574,7 +583,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
 		// Configure the bean factory with context callbacks.
+		// 此处把当前 ApplicationContext对象注入ApplicationContextAwareProcessor, 后面 createBean过程中，会调用 postProcessBeforeInitialization把
+		// Environment EmbeddedValueResolver ApplicationEventPublisher 等放入实现了相应Aware接口的Bean实例中。
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+
+		// populateBean时忽略
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
 		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -727,6 +740,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Register BeanPostProcessorChecker that logs an info message when
 		// a bean is created during BeanPostProcessor instantiation, i.e. when
 		// a bean is not eligible for getting processed by all BeanPostProcessors.
+		// todo: 不是很明确，怀疑 +1 是计算了BeanPostProcessorChecker本身，
+		// todo: 但是为什么这一校验是在每一个bean执行时来校验呢，观察计数是在beanFactory层
 		int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
 		beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
 

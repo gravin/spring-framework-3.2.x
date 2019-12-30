@@ -146,7 +146,7 @@ class TypeConverterDelegate {
 
 		Object convertedValue = newValue;
 
-		// Custom editor for this type?
+		// Custom editor for this type? 查找自定义的 editor
 		PropertyEditor editor = this.propertyEditorRegistry.findCustomEditor(requiredType, propertyName);
 
 		ConversionFailedException firstAttemptEx = null;
@@ -354,6 +354,13 @@ class TypeConverterDelegate {
 	 * @param editor the PropertyEditor to use
 	 * @return the new value, possibly the result of type conversion
 	 * @throws IllegalArgumentException if type conversion failed
+	 *
+	 * 此处可观察到 PropertyEditor 的用法，
+	 *
+	 * 如果非字符串，editor.setValue(convertedValue); newConvertedValue = editor.getValue(); 通过setValue getValue即可获得转换后值
+	 *
+	 * 如果字符串，见
+	 * @see #doConvertTextValue(Object, String, PropertyEditor) 分别调用setValue,setAsText 再调用 getValue (所以对字符串类型实现setValue,setAsText任何一个即可)
 	 */
 	private Object doConvertValue(Object oldValue, Object newValue, Class<?> requiredType, PropertyEditor editor) {
 		Object convertedValue = newValue;
