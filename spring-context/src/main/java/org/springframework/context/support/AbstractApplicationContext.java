@@ -488,21 +488,29 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
+				/**
+				 * 国际化，最后还是调用 ResourceBundle.getBundle 来获得Message
+				 * @see ResourceBundleMessageSource#doGetBundle(String, Locale)
+				 */
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				// 查看有没有名为applicationEventMulticaster的Bean，如无使用 SimpleApplicationEventMulticaster
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
 				onRefresh();
 
 				// Check for listener beans and register them.
+				// 两部分，一部分为硬编码的监听器，另一部分是遍历Bean把类型为ApplicationListener的加入
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				// 对所有非懒加载的单例Bean调用getBean方法
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				// 调用lifeCycle bean的start方法，并发出ContextRefreshedEvent事件
 				finishRefresh();
 			}
 
@@ -947,6 +955,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
 		// Initialize conversion service for this context.
+		/**
+		 * 使用 convert方法来转换，todo 具体在哪里用还要看
+		 * @see ConversionService#convert(Object, Class)
+		 * @see ConversionServiceFactoryBean
+		 */
 		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
 				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
 			beanFactory.setConversionService(
@@ -966,6 +979,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+		// 创建并配置所有的单例 Bean
 		beanFactory.preInstantiateSingletons();
 	}
 
@@ -976,12 +990,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void finishRefresh() {
 		// Initialize lifecycle processor for this context.
+		// 有名字为 lifecycleProcessor 的bean,则选定，如无则new 一个 DefaultLifecycleProcessor
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		// 启动所有lifeCycle接口，smartLifeCycle接口的bean
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.
+		// 发出ContextRefreshedEvent事件ApplicationEventListener都能监听，一般由监听器根据类型来决定处不处理。
 		publishEvent(new ContextRefreshedEvent(this));
 
 		// Participate in LiveBeansView MBean, if active.
