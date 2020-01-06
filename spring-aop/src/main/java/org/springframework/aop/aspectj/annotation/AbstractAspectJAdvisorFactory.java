@@ -127,6 +127,7 @@ public abstract class AbstractAspectJAdvisorFactory implements AspectJAdvisorFac
 		// The AJTypeSystem goes to great lengths to provide a uniform appearance between code-style and
 		// annotation-style aspects. Therefore there is no 'clean' way to tell them apart. Here we rely on
 		// an implementation detail of the AspectJ compiler.
+		// 基于注解和基于编码
 		for (Field field : clazz.getDeclaredFields()) {
 			if (field.getName().startsWith(AJC_MAGIC)) {
 				return true;

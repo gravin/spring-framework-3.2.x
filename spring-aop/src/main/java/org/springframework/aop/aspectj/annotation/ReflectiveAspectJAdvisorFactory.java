@@ -129,13 +129,13 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		final List<Method> methods = new LinkedList<Method>();
 		ReflectionUtils.doWithMethods(aspectClass, new ReflectionUtils.MethodCallback() {
 			public void doWith(Method method) throws IllegalArgumentException {
-				// Exclude pointcuts
+				// Exclude pointcuts 有标注为@pointcut @before @Around 等， @pointcut只是切入点（连接点的过滤器），不是advisor
 				if (AnnotationUtils.getAnnotation(method, Pointcut.class) == null) {
 					methods.add(method);
 				}
 			}
 		});
-		Collections.sort(methods, METHOD_COMPARATOR);
+		Collections.sort(methods, METHOD_COMPARATOR); // 使用 CompoundComparator， 先按 Annotation比较，再按方法名比较，这是一个多个比较器使用的好方法
 		return methods;
 	}
 
@@ -173,7 +173,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 				getPointcut(candidateAdviceMethod, aif.getAspectMetadata().getAspectClass());
 		if (ajexp == null) {
 			return null;
-		}
+		}// 没有把annotation传入，annotation一律是通过candidateAdviceMethod来找到annotation的。
 		return new InstantiationModelAwarePointcutAdvisorImpl(
 				this, ajexp, aif, candidateAdviceMethod, declarationOrderInAspect, aspectName);
 	}
