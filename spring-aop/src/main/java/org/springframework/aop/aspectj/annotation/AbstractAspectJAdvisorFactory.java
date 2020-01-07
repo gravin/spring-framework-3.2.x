@@ -238,7 +238,7 @@ public abstract class AbstractAspectJAdvisorFactory implements AspectJAdvisorFac
 
 		private final String argumentNames;
 
-		public AspectJAnnotation(A annotation) {
+		public AspectJAnnotation(A annotation) { // @Before("test()"), test()存放 pointcutExpression 中
 			this.annotation = annotation;
 			this.annotationType = determineAnnotationType(annotation);
 			// We know these methods exist with the same name on each object,

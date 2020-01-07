@@ -66,10 +66,10 @@ class InstantiationModelAwarePointcutAdvisorImpl
 	public InstantiationModelAwarePointcutAdvisorImpl(AspectJAdvisorFactory af, AspectJExpressionPointcut ajexp,
 			MetadataAwareAspectInstanceFactory aif, Method method, int declarationOrderInAspect, String aspectName) {
 
-		this.declaredPointcut = ajexp;
-		this.method = method;
-		this.atAspectJAdvisorFactory = af;
-		this.aspectInstanceFactory = aif;
+		this.declaredPointcut = ajexp;    // AspectJExpressionPointcut
+		this.method = method;            // advice方法 java.lang.reflect.Method@79ee779c{public void com.codeanalysis.aop.AspectJTest.beforeTest()}
+		this.atAspectJAdvisorFactory = af; // ReflectiveAspectJAdvisorFactory
+		this.aspectInstanceFactory = aif; /** @see LazySingletonAspectInstanceFactoryDecorator **/
 		this.declarationOrder = declarationOrderInAspect;
 		this.aspectName = aspectName;
 

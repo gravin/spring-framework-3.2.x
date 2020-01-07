@@ -169,6 +169,14 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 
 		validate(aif.getAspectMetadata().getAspectClass());
 
+		/**
+		 * 主要保存了 AspectClass (pointcutDeclarationScope) 以及 expression， (这里没有保存 adviceMethod),
+		 * @see AspectJExpressionPointcut#matches(Class)
+		 * @see AspectJExpressionPointcut#matches(Method, Class, boolean)
+		 * 上述两方法分别调用下面的aspectj原生方法来检测
+		 * 调用aspectj原生方法 this.pointcutExpression.couldMatchJoinPointsInType去检测连接点类型是否合适
+		 * 调用aspectj原生方法 shadowMatch = this.pointcutExpression.matchesMethodExecution(targetMethod)去检测连接点方法是否合适
+		 */
 		AspectJExpressionPointcut ajexp =
 				getPointcut(candidateAdviceMethod, aif.getAspectMetadata().getAspectClass());
 		if (ajexp == null) {

@@ -559,7 +559,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyConfig
 		ConfigurableBeanFactory cbf = (this.beanFactory instanceof ConfigurableBeanFactory) ?
 				(ConfigurableBeanFactory) this.beanFactory : null;
 		List<Advisor> advisors = new ArrayList<Advisor>();
-		for (String beanName : this.interceptorNames) {
+		for (String beanName : this.interceptorNames) { // interceptorNames xml 配置时会指定 interceptorNames
 			if (cbf == null || !cbf.isCurrentlyInCreation(beanName)) {
 				Object next = this.beanFactory.getBean(beanName);
 				advisors.add(this.advisorAdapterRegistry.wrap(next));

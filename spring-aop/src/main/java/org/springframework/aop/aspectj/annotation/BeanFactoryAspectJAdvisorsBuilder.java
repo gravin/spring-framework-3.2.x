@@ -16,6 +16,7 @@
 
 package org.springframework.aop.aspectj.annotation;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -25,8 +26,10 @@ import java.util.Map;
 import org.aspectj.lang.reflect.PerClauseKind;
 
 import org.springframework.aop.Advisor;
+import org.springframework.aop.aspectj.AspectJExpressionPointcut;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.util.Assert;
 
 /**
@@ -96,16 +99,33 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 					// We must be careful not to instantiate beans eagerly as in this
 					// case they would be cached by the Spring container but would not
 					// have been weaved
+					/**
+					 * @see org.springframework.beans.factory.support.AbstractBeanFactory#getType(String)
+					 * 使用 getSingleton(beanName, false) 保证不调用 singletonFactory.getObject()
+					 * 如果实例中没有，则查看beanDefinition中的targetType
+					 * 再调用所有 SmartInstantiationAwareBeanPostProcessor 的 predictBeanType
+					 * @see org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#predictBeanType(String, RootBeanDefinition, Class[])
+					 */
 					Class beanType = this.beanFactory.getType(beanName);
 					if (beanType == null) {
 						continue;
 					}
 					if (this.advisorFactory.isAspect(beanType)) {
 						aspectNames.add(beanName);
+						// 主要存储aspectName, pointCut,以及从beanType得到的 AjType AjTypeSystem.getAjType(currClass);
 						AspectMetadata amd = new AspectMetadata(beanType, beanName);
 						if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
+							// 主要包装了beanFactory,name,aspectMetadata 以及 aspectInstance
+							//  public Object getAspectInstance() {
+							//		return this.beanFactory.getBean(this.name);
+							//	}
 							MetadataAwareAspectInstanceFactory factory =
 									new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+							/**
+							 * Advisor getAdvice 获取的实例如 AspectJMethodBeforeAdvice  getPointCut AspectJExpressionPointcut(主要包含了一个expression)
+							 * @see org.springframework.aop.aspectj.AspectJMethodBeforeAdvice
+							 * @see InstantiationModelAwarePointcutAdvisorImpl#InstantiationModelAwarePointcutAdvisorImpl(AspectJAdvisorFactory, AspectJExpressionPointcut, MetadataAwareAspectInstanceFactory, Method, int, String)
+							 */
 							List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
 							if (this.beanFactory.isSingleton(beanName)) {
 								this.advisorsCache.put(beanName, classAdvisors);
