@@ -178,12 +178,26 @@ final class CglibAopProxy implements AopProxy, Serializable {
 				enhancer.setClassLoader(classLoader);
 				if (classLoader instanceof SmartClassLoader &&
 						((SmartClassLoader) classLoader).isClassReloadable(proxySuperClass)) {
+					/**
+					 * cglib原注释
+					 * Whether use and update the static cache of generated classes
+					 * for a class with the same properties. Default is <code>true</code>.
+					 */
 					enhancer.setUseCache(false);
 				}
 			}
+			/**
+			 * Set the class which the generated class will extend. As a convenience,
+			 * if the supplied superclass is actually an interface, <code>setInterfaces</code>
+			 * will be called with the appropriate argument instead.
+			 * A non-interface argument must not be declared as final, and must have an
+			 * accessible constructor.
+			 */
 			enhancer.setSuperclass(proxySuperClass);
 			enhancer.setInterfaces(AopProxyUtils.completeProxiedInterfaces(this.advised));
+			// todo 命名规则，也要看cglib源码
 			enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
+			// todo 要看cglib源码
 			enhancer.setStrategy(new MemorySafeUndeclaredThrowableStrategy(UndeclaredThrowableException.class));
 			enhancer.setInterceptDuringConstruction(false);
 

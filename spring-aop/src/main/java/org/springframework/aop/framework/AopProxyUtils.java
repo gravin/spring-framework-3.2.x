@@ -87,6 +87,7 @@ public abstract class AopProxyUtils {
 				specifiedInterfaces = new Class[] {targetClass};
 			}
 		}
+		// todo 此处不是查看targetClass是否已经实现了 SpringProxy.class吗？为什么用的是advised的类型去做的比较？
 		boolean addSpringProxy = !advised.isInterfaceProxied(SpringProxy.class);
 		boolean addAdvised = !advised.isOpaque() && !advised.isInterfaceProxied(Advised.class);
 		int nonUserIfcCount = 0;
