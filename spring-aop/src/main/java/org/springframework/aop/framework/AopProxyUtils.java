@@ -79,6 +79,7 @@ public abstract class AopProxyUtils {
 	 * @see org.springframework.aop.SpringProxy
 	 */
 	public static Class[] completeProxiedInterfaces(AdvisedSupport advised) {
+		// 代理对象的接口 + SpringProxy + Advised
 		Class[] specifiedInterfaces = advised.getProxiedInterfaces();
 		if (specifiedInterfaces.length == 0) {
 			// No user-specified interfaces: check whether target class is an interface.
@@ -87,7 +88,7 @@ public abstract class AopProxyUtils {
 				specifiedInterfaces = new Class[] {targetClass};
 			}
 		}
-		// todo 此处不是查看targetClass是否已经实现了 SpringProxy.class吗？为什么用的是advised的类型去做的比较？
+		// 此处查看targetClass的接口们是否已经继承了 SpringProxy.class吗？代理对象的接口们已经在proxyFactory的interfaces属性中了
 		boolean addSpringProxy = !advised.isInterfaceProxied(SpringProxy.class);
 		boolean addAdvised = !advised.isOpaque() && !advised.isInterfaceProxied(Advised.class);
 		int nonUserIfcCount = 0;

@@ -369,7 +369,7 @@ public abstract class ReflectionUtils {
 			return false;
 		}
 		Class<?>[] paramTypes = method.getParameterTypes();
-		return (paramTypes.length == 1 && paramTypes[0] == Object.class);
+		return (paramTypes.length == 1 && paramTypes[0] == Object.class);// 参数必须为Object.class,如果是子类，那是不行的。
 	}
 
 	/**

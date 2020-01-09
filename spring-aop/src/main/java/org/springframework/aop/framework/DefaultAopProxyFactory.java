@@ -50,6 +50,7 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 
 
 	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+		// todo 观察ProxyFactory的类图
 		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
 			Class targetClass = config.getTargetClass();
 			if (targetClass == null) {

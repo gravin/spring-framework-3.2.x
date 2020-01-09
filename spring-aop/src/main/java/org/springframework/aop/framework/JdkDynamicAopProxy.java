@@ -114,7 +114,9 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 		if (logger.isDebugEnabled()) {
 			logger.debug("Creating JDK dynamic proxy: target source is " + this.advised.getTargetSource());
 		}
+		// todo 可以观察到代理接口中加入了Advised接口，那么该代理接口的作用是什么呢？
 		Class<?>[] proxiedInterfaces = AopProxyUtils.completeProxiedInterfaces(this.advised);
+		// 遍历接口里的方法并标志是否实现了equals, hashCode方法
 		findDefinedEqualsAndHashCodeMethods(proxiedInterfaces);
 		return Proxy.newProxyInstance(classLoader, proxiedInterfaces, this);
 	}
@@ -149,7 +151,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 	 */
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		MethodInvocation invocation;
-		Object oldProxy = null;
+		Object oldProxy = null; // todo 参见下面 AopContext.setCurrentProxy(oldProxy); 不过，这不是每一个aop调用都必须同步？
 		boolean setProxyContext = false;
 
 		TargetSource targetSource = this.advised.targetSource;
@@ -157,6 +159,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 		Object target = null;
 
 		try {
+			// 如果equals方法不定义在代理接口中（没有被代理），且此时调用的方法是equals方法时，直接调用。
 			if (!this.equalsDefined && AopUtils.isEqualsMethod(method)) {
 				// The target does not implement the equals(Object) method itself.
 				return equals(args[0]);
@@ -168,13 +171,14 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 			if (!this.advised.opaque && method.getDeclaringClass().isInterface() &&
 					method.getDeclaringClass().isAssignableFrom(Advised.class)) {
 				// Service invocations on ProxyConfig with the proxy config...
+				// todo 如果继承了Advised方法，且不是opaque, 那么直接调用()
 				return AopUtils.invokeJoinpointUsingReflection(this.advised, method, args);
 			}
 
 			Object retVal;
 
 			if (this.advised.exposeProxy) {
-				// Make invocation available if necessary.
+				// Make invocation available if necessary. // 代理对象内部的相互调用可以AopContext.getCurrentProxy().XXX
 				oldProxy = AopContext.setCurrentProxy(proxy);
 				setProxyContext = true;
 			}

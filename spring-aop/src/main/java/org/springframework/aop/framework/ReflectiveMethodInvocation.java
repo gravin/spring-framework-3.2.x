@@ -145,7 +145,7 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 
 
 	public Object proceed() throws Throwable {
-		//	We start with an index of -1 and increment early.
+		//	We start with an index of -1 and increment early.  由于++执行在下面，所以当index == size()-1时，最后一个拦截器已经执行
 		if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
 			return invokeJoinpoint();
 		}
@@ -169,6 +169,21 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 		else {
 			// It's an interceptor, so we just invoke it: The pointcut will have
 			// been evaluated statically before this object was constructed.
+			/**
+			 * Interceptor设计是挺吊诡的，在 JdkDynamicAopProxy 中只new 了一个 ReflectiveMethodInvocation 对象
+			 * 在此对象中保存了拦截器链，在ReflectiveMethodInvocation对象proceed方法中记录当前执行的索引
+			 * proceed方法执行时，把ReflectiveMethodInvocation对象自己(this)传递给拦截器链中的拦截器,
+			 * 具体拦截逻辑由拦截器invoke方法内部完成，拦截完成之后，要记得调用invoke方法参数传递来ReflectiveMethodInvocation对象的proceed方法。
+			 * 这样就进入了ReflectiveMethodInvocation对象的下一个拦截器逻辑了。
+			 *
+			 * 简单说每调用proceed一次，索引就加1，实际执行的拦截器就不同。proceed方法负责挑选下一个执行者。拦截器负责具体分步逻辑。
+			 * 只要保证同一ReflectiveMethodInvocation对象在拦截链中的拦截器中传递，同时每个拦截器执行完自己逻辑后都调一下proceed方法，就能“链式反应”下去了。
+			 *
+			 * todo 这算啥模式？责任链？要看下设计模式书
+			 *
+			 * @see org.springframework.aop.framework.adapter.MethodBeforeAdviceInterceptor#invoke(MethodInvocation)
+			 *
+			 */
 			return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
 		}
 	}

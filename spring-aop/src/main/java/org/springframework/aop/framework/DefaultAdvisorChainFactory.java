@@ -29,6 +29,8 @@ import org.springframework.aop.Advisor;
 import org.springframework.aop.IntroductionAdvisor;
 import org.springframework.aop.MethodMatcher;
 import org.springframework.aop.PointcutAdvisor;
+import org.springframework.aop.aspectj.AspectJExpressionPointcut;
+import org.springframework.aop.aspectj.annotation.MetadataAwareAspectInstanceFactory;
 import org.springframework.aop.framework.adapter.AdvisorAdapterRegistry;
 import org.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
 import org.springframework.aop.support.MethodMatchers;
@@ -59,6 +61,13 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 				// Add it conditionally.
 				PointcutAdvisor pointcutAdvisor = (PointcutAdvisor) advisor;
 				if (config.isPreFiltered() || pointcutAdvisor.getPointcut().getClassFilter().matches(targetClass)) {
+					/**
+					 * 此处把 AspectJMethodBeforeAdvice/MethodBeforeAdvice 转化为 MethodBeforeAdviceInterceptor
+					 * @see org.springframework.aop.aspectj.annotation.ReflectiveAspectJAdvisorFactory#getAdvisor(Method, MetadataAwareAspectInstanceFactory, int, String)
+					 * @see org.springframework.aop.aspectj.annotation.InstantiationModelAwarePointcutAdvisorImpl#instantiateAdvice(AspectJExpressionPointcut)
+					 * 此处实例化 AspectJMethodBeforeAdvice 等
+					 * @see org.springframework.aop.aspectj.annotation.ReflectiveAspectJAdvisorFactory#getAdvice(Method, AspectJExpressionPointcut, MetadataAwareAspectInstanceFactory, int, String)
+					 */
 					MethodInterceptor[] interceptors = registry.getInterceptors(advisor);
 					MethodMatcher mm = pointcutAdvisor.getPointcut().getMethodMatcher();
 					if (MethodMatchers.matches(mm, method, targetClass, hasIntroductions)) {
