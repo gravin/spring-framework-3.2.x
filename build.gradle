@@ -2,6 +2,7 @@ buildscript {
     repositories {
         maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
         maven { url "https://repo.spring.io/plugins-release" }
+        mavenCentral()
     }
     dependencies {
         classpath("org.springframework.build.gradle:propdeps-plugin:0.0.7")
@@ -19,7 +20,7 @@ configure(allprojects) { project ->
     group = "org.springframework"
     version = qualifyVersionIfNecessary(version)
 
-    ext.aspectjVersion = "1.7.4"
+    ext.aspectjVersion = "1.8.12" //"1.7.4"
     ext.hsqldbVersion = "1.8.0.10"
     ext.junitVersion = "4.11"
     ext.slf4jVersion = "1.6.6"
@@ -38,6 +39,9 @@ configure(allprojects) { project ->
 		sourceCompatibility=1.7
 		targetCompatibility=1.7
 	}
+
+    //加入这个以应对中文字符
+    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     [compileJava, compileTestJava]*.options*.compilerArgs = [
             "-Xlint:serial",
@@ -75,7 +79,9 @@ configure(allprojects) { project ->
     }
 
     repositories {
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
         maven { url "https://repo.spring.io/libs-release" }
+        mavenCentral()
     }
 
     dependencies {
@@ -131,6 +137,8 @@ configure(subprojects - project(":spring-build-src")) { subproject ->
     javadoc {
         description = "Generates project-level javadoc for use in -javadoc jar"
 
+        options.encoding = "UTF-8"
+        options.charSet = "UTF-8"
         options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
         options.author = true
         options.header = project.name
@@ -158,7 +166,7 @@ configure(subprojects - project(":spring-build-src")) { subproject ->
 
     artifacts {
         archives sourcesJar
-        archives javadocJar
+//        archives javadocJar
     }
 }
 
