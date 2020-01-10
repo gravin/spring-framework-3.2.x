@@ -16,6 +16,7 @@
 
 package org.springframework.context.config;
 
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.w3c.dom.Element;
 
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -57,18 +58,27 @@ class LoadTimeWeaverBeanDefinitionParser extends AbstractSingleBeanDefinitionPar
 
 	@Override
 	protected String resolveId(Element element, AbstractBeanDefinition definition, ParserContext parserContext) {
+		/**
+		 * 	prepareBeanFactory方法会根据这个Bean是否存在来决定是否加载 LoadTimeWeaverAwareProcessor
+		 *  @see org.springframework.context.support.AbstractApplicationContext#prepareBeanFactory(ConfigurableListableBeanFactory)
+		 */
 		return ConfigurableApplicationContext.LOAD_TIME_WEAVER_BEAN_NAME;
 	}
 
 	@Override
 	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
 		builder.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-
+		/**
+		 * <context:load-time-weaver aspectj-weaving="autodetect"/>
+		 * 查看是否有配置aspectj-weaving，on,off，如果没有配置，则为autodetect，此时要看classpath下有无文件META-INF/aop.xml
+		 */
 		if (isAspectJWeavingEnabled(element.getAttribute(ASPECTJ_WEAVING_ATTRIBUTE), parserContext)) {
+			// 编码添加Bean(org.springframework.context.weaving.AspectJWeavingEnabler)
 			RootBeanDefinition weavingEnablerDef = new RootBeanDefinition();
 			weavingEnablerDef.setBeanClassName(ASPECTJ_WEAVING_ENABLER_CLASS_NAME);
 			parserContext.getReaderContext().registerWithGeneratedName(weavingEnablerDef);
 
+			// todo 下面是为了 <context:spring-configured/>， 待研究此用法
 			if (isBeanConfigurerAspectEnabled(parserContext.getReaderContext().getBeanClassLoader())) {
 				new SpringConfiguredBeanDefinitionParser().parse(element, parserContext);
 			}
