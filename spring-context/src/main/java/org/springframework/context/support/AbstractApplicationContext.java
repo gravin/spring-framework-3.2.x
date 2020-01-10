@@ -61,7 +61,6 @@ import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.NoSuchMessageException;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.config.ContextNamespaceHandler;
-import org.springframework.context.config.LoadTimeWeaverBeanDefinitionParser;
 import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
