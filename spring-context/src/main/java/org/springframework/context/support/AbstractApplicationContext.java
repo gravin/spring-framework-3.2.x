@@ -719,6 +719,28 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Next, invoke the BeanFactoryPostProcessors that implement Ordered.
 		List<BeanFactoryPostProcessor> orderedPostProcessors = new ArrayList<BeanFactoryPostProcessor>();
 		for (String postProcessorName : orderedPostProcessorNames) {
+			/**此段逻辑是为了调用postProcessBeanFactory方法，但由于BeanFactoryPostProcessor本身也是一种Bean,故此处调用时会getBean
+			 * 进而会牵扯到当前所有的BeanPostProcessor接口方法的调用
+			 * 例：
+			 * orderedPostProcessorNames 包含了 org.springframework.context.weaving.AspectJWeavingEnabler#0
+			 * 这是因为 AspectJWeavingEnabler 继承了BeanFactoryPostProcessor 及 Ordered接口，
+			 * 于是此方法会被调用: getBean("name": "org.springframework.context.weaving.AspectJWeavingEnabler#0","requiredType": "interface org.springframework.beans.factory.config.BeanFactoryPostProcessor")
+			 * 则会调用到 BeanPostProcessor 的 postProcessBeforeInitialization 接口方法
+			 * 在 LoadTimeWeaverAwareProcessor 的方法中作了 if (bean instanceof LoadTimeWeaverAware)的判断，则该BeanPostProcessor只对AspectJWeavingEnabler产生作用。
+			 * @see LoadTimeWeaverAwareProcessor#postProcessBeforeInitialization(Object, String)
+			 * 此方法中又获取loadTimeWeaver来设入AspectJWeavingEnabler：getBean("name": "loadTimeWeaver", "requiredType": "interface org.springframework.instrument.classloading.LoadTimeWeaver")
+			 * 此时将会获得 DefaultContextLoadTimeWeaver类型的Bean(原因见下), 由于该类型实现了BeanClassLoaderAware，那则会在initializeBean步骤调用invokeAwareMethods, 从而调用 DefaultContextLoadTimeWeaver.setBeanClassLoader方法
+			 * @see org.springframework.context.weaving.DefaultContextLoadTimeWeaver#setBeanClassLoader(ClassLoader) 于是设置 DefaultContextLoadTimeWeaver.loadTimeWeaver = new InstrumentationLoadTimeWeaver(classLoader);
+			 * 于是完成了AspectJWeavingEnabler.loadTimeWeaver = DefaultContextLoadTimeWeaver
+			 *
+			 * loadTimeWeaver beanDefinition 的来源：
+			 * 在解析自定义标签<context:load-time-weaver/>时，根据NamespaceUrl("http://www.springframework.org/schema/context")找到ContextNamespaceHandler
+			 * @see ContextNamespaceHandler#init()  注册了 registerBeanDefinitionParser("load-time-weaver", new LoadTimeWeaverBeanDefinitionParser());
+			 * 然后handler根据localName("load-time-weaver")找到LoadTimeWeaverBeanDefinitionParser解析器
+			 * @see org.springframework.context.config.LoadTimeWeaverBeanDefinitionParser
+			 * 解析器重写了getBeanClass,resolveId方法，解析出来的beanDefiniton以此两方法设置类，名字
+			 * @see org.springframework.context.weaving.DefaultContextLoadTimeWeaver
+			 */
 			orderedPostProcessors.add(getBean(postProcessorName, BeanFactoryPostProcessor.class));
 		}
 		OrderComparator.sort(orderedPostProcessors);
