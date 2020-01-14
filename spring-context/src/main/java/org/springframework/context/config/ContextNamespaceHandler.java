@@ -16,9 +16,13 @@
 
 package org.springframework.context.config;
 
+import org.springframework.beans.factory.xml.AbstractBeanDefinitionParser;
+import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
+import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.context.annotation.AnnotationConfigBeanDefinitionParser;
 import org.springframework.context.annotation.ComponentScanBeanDefinitionParser;
+import org.w3c.dom.Element;
 
 /**
  * {@link org.springframework.beans.factory.xml.NamespaceHandler}
@@ -30,15 +34,20 @@ import org.springframework.context.annotation.ComponentScanBeanDefinitionParser;
  */
 public class ContextNamespaceHandler extends NamespaceHandlerSupport {
 
-	public void init() {
-		registerBeanDefinitionParser("property-placeholder", new PropertyPlaceholderBeanDefinitionParser());
-		registerBeanDefinitionParser("property-override", new PropertyOverrideBeanDefinitionParser());
-		registerBeanDefinitionParser("annotation-config", new AnnotationConfigBeanDefinitionParser());
-		registerBeanDefinitionParser("component-scan", new ComponentScanBeanDefinitionParser());
-		registerBeanDefinitionParser("load-time-weaver", new LoadTimeWeaverBeanDefinitionParser());
-		registerBeanDefinitionParser("spring-configured", new SpringConfiguredBeanDefinitionParser());
-		registerBeanDefinitionParser("mbean-export", new MBeanExportBeanDefinitionParser());
-		registerBeanDefinitionParser("mbean-server", new MBeanServerBeanDefinitionParser());
-	}
+    public void init() {
+        /**
+         * 可以看到要么直接实现BeanDefinitionParser，在parse里面编码创建beanDefinition
+         * 要么继承，如 {@link AbstractSingleBeanDefinitionParser}
+         * 此类把parse过程由父类 {@link AbstractBeanDefinitionParser#parse(Element, ParserContext)} 及自身共同实现
+         */
+        registerBeanDefinitionParser("property-placeholder", new PropertyPlaceholderBeanDefinitionParser());
+        registerBeanDefinitionParser("property-override", new PropertyOverrideBeanDefinitionParser());
+        registerBeanDefinitionParser("annotation-config", new AnnotationConfigBeanDefinitionParser());
+        registerBeanDefinitionParser("component-scan", new ComponentScanBeanDefinitionParser());
+        registerBeanDefinitionParser("load-time-weaver", new LoadTimeWeaverBeanDefinitionParser());
+        registerBeanDefinitionParser("spring-configured", new SpringConfiguredBeanDefinitionParser());
+        registerBeanDefinitionParser("mbean-export", new MBeanExportBeanDefinitionParser());
+        registerBeanDefinitionParser("mbean-server", new MBeanServerBeanDefinitionParser());
+    }
 
 }

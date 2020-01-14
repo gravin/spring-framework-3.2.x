@@ -1424,11 +1424,17 @@ public class BeanDefinitionParserDelegate {
 
 	public BeanDefinition parseCustomElement(Element ele, BeanDefinition containingBd) {
 		String namespaceUri = getNamespaceURI(ele);
+		/** @see DefaultNamespaceHandlerResolver#resolve(String)
+		 * 根据url获取具体的NamespaceHandler，在classpath下的META-INF/spring.handlers中找，找到后调init初始化
+		 */
 		NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
 		if (handler == null) {
 			error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]", ele);
 			return null;
 		}
+		/**
+		 * 一般来讲如 ContextNamespaceHandler 都会继承 {@link NamespaceHandlerSupport}，再加上自己的实现，比较方便
+		 */
 		return handler.parse(ele, new ParserContext(this.readerContext, this, containingBd));
 	}
 

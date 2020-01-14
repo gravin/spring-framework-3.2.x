@@ -58,6 +58,10 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	 */
 	@Override
 	protected final AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
+		/**
+		 * 此处仅仅是new 了一个GenericBeanDefinition, 是希望子类实现 getParentName getBeanClass/getBeanClassName 完成BeanDefiniton的设置
+		 * 如果还有进一步的其它属性的读取，希望子类实现 doParse 来帮它完成
+		 */
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition();
 		String parentName = getParentName(element);
 		if (parentName != null) {

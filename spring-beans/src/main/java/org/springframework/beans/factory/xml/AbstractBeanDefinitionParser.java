@@ -56,9 +56,13 @@ public abstract class AbstractBeanDefinitionParser implements BeanDefinitionPars
 	public static final String NAME_ATTRIBUTE = "name";
 
 	public final BeanDefinition parse(Element element, ParserContext parserContext) {
+		// 只完成了id读取，name读取，及注册流程，其它信息解析流程由子类完成。
+
+		// 完成definition的读取，交给子类完成
 		AbstractBeanDefinition definition = parseInternal(element, parserContext);
 		if (definition != null && !parserContext.isNested()) {
 			try {
+				// resolveId 方法，设置definition的id
 				String id = resolveId(element, definition, parserContext);
 				if (!StringUtils.hasText(id)) {
 					parserContext.getReaderContext().error(

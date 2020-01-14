@@ -68,6 +68,8 @@ public abstract class NamespaceHandlerSupport implements NamespaceHandler {
 	/**
 	 * Parses the supplied {@link Element} by delegating to the {@link BeanDefinitionParser} that is
 	 * registered for that {@link Element}.
+	 * 在NamespaceHandler的init方法中注册parser, 此处即能根据标签找到Parser
+	 * 见 ContextNamespaceHandler.init
 	 */
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
 		return findParserForElement(element, parserContext).parse(element, parserContext);
