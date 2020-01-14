@@ -72,6 +72,7 @@ public abstract class NamespaceHandlerSupport implements NamespaceHandler {
 	 * 见 ContextNamespaceHandler.init
 	 */
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		// findParserForElement 是连接 NamespaceHandler 与 BeanDefinitionParser的桥梁, 通过这个方法就可以找到合适的parser去完成解析注册的工作了。
 		return findParserForElement(element, parserContext).parse(element, parserContext);
 	}
 
