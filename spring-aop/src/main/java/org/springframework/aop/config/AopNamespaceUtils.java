@@ -76,7 +76,7 @@ public abstract class AopNamespaceUtils {
 		/**
 		 * 查看有没有名字为org.springframework.aop.config.internalAutoProxyCreator的beanDefinition,
 		 * 如有，比较优先级, 最终结果还是setBeanClassName为 AnnotationAwareAspectJAutoProxyCreator（它的优先级最高）
-		 * 如无，把 AnnotationAwareAspectJAutoProxyCreator.class 添加到beanDefinition中
+		 * 如无，把 AnnotationAwareAspectJAutoProxyCreator.class(name:"org.springframework.aop.config.internalAutoProxyCreator") 添加到beanDefinition中
 		 */
 		BeanDefinition beanDefinition = AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(
 				parserContext.getRegistry(), parserContext.extractSource(sourceElement));

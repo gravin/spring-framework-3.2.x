@@ -38,6 +38,7 @@ import org.springframework.beans.factory.xml.ParserContext;
 class AspectJAutoProxyBeanDefinitionParser implements BeanDefinitionParser {
 
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		// 其实就是注册一个类型为AnnotationAwareAspectJAutoProxyCreator的BeanDefinition,其为BeanPostProcessor,则会在postProcessAfterInitiation中创建实例的动态代理
 		AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(parserContext, element);
 		extendBeanDefinition(element, parserContext);
 		return null;
