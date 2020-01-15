@@ -44,6 +44,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.SmartInstantiationAwareBeanPostProcessor;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.Ordered;
 import org.springframework.util.ClassUtils;
 
@@ -320,8 +321,18 @@ public abstract class AbstractAutoProxyCreator extends ProxyConfig
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		if (bean != null) {
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
-			// 如果没有循环引用，则在第一次getBean,执行 postProcessAfterInitialization时创建代理对象
-			// 如果是循环引用,
+			/** 如果是循环引用, 很显然在InitializeBean（postProcessAfterInitialization）方法在populateBean后执行
+			 * 	而getBean A --> populateBean A --> getBean B ---> populateBean B --->getBean A --> getSingleton("A","allowEarlyReference": true)
+			 *  singletonObject = singletonFactory.getObject(); --> getEarlyBeanReference A -->
+			 *  {@link org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#getEarlyBeanReference(String, RootBeanDefinition, Object)}
+			 *  --> {@link #getEarlyBeanReference} A
+			 *  处会已完成代理创建。
+			 *
+			 *  这也容易理解，肯定把代理注入到有引用的地方，应为getBean A最终返回的也是A的代理，否则就不一致了。
+			 *  这就导致，在postProcessAfterInitialization过程中不需要再次创建代理，也导致后续的所有postProcessAfterInitialization方法都是基于原始Bean去完成的。
+			 *  也可以看看 {@link SmartInstantiationAwareBeanPostProcessor#getEarlyBeanReference(Object, String)} 的描述
+			 */
+
 			if (!this.earlyProxyReferences.containsKey(cacheKey)) {
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}

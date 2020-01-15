@@ -557,9 +557,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				 * 对于循环引用提前暴露的情况，我们则不进行aop的重复创建，直接对原始Bean应用，这也是为了下面进行 exposedObject == bean 的判断（如果应用了，也就不相等了）
 				 *
 				 * 由于 {@link #applyBeanPostProcessorsAfterInitialization(Object, String)} 是把每一次处理的结果作为参数传给下个BeanPostProcessor,且最后返回结果对象赋值给exposedObject
-				 * 此处可以看出对于非循环引用，代理会在此处创建，则有排序在后的applyBeanPostProcessorsAfterInitialization方法则会基于代理进行
-				 * 而对于循环引用，代理不在此处创建，那么所有的applyBeanPostProcessorsAfterInitialization方法都不基于代理进行
 				 *
+				 * 此处可以看出对于非循环引用，代理会在此处创建，则有排序在后的applyBeanPostProcessorsAfterInitialization方法则会基于代理进行
+				 * 而 AnnotationAwareAspectJAutoProxyCreator 的order又设为最高，参看 {@link org.springframework.aop.config.AopConfigUtils#registerOrEscalateApcAsRequired(Class, BeanDefinitionRegistry, Object)}
+				 * 所以说，所有（除非实现PriorityOrder)的BeanPostProcessors都会基于代理实现调用
+				 *
+				 * 而对于循环引用，代理不在此处创建，那么所有的applyBeanPostProcessorsAfterInitialization方法都不基于代理进行
+				 * 对于上述情况出现的bug,可参考 {@link https://www.jianshu.com/p/f12e298f12fe }
 				 */
 				exposedObject = initializeBean(beanName, exposedObject, mbd);
 			}
