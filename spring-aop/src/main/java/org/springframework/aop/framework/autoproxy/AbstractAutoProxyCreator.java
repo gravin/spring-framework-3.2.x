@@ -320,6 +320,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyConfig
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		if (bean != null) {
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
+			// 如果没有循环引用，则在第一次getBean,执行 postProcessAfterInitialization时创建代理对象
+			// 如果是循环引用,
 			if (!this.earlyProxyReferences.containsKey(cacheKey)) {
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
