@@ -541,6 +541,25 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				 * 3.1 如实现InitializingBean接口执行afterPropertiesSet方法
 				 * 3.2 如配置文件中配置有init-method(且不是3.1方法)，则执行该初始化方法
 				 * 4.  applyBeanPostProcessorsAfterInitialization
+				 *
+				 * 在IOC完成之后，进行初始化调用, AOP拦截器发生在4。这意味着所有的调用包括init-method均是基于原生的Bean来调用的,并未应用aop。
+				 * 根据spring reference对此解释：
+				 * 最后，请注意Spring容器保证在bean的所有依赖都满足后立即执行配置的初始化回调。这意味着初始化回调在原生bean上调用，这也意味着这个时候任何诸如AOP拦截器之类的将不能被应用。
+				 * 一个目标bean是首先完全创建，然后才应用诸如AOP代理等拦截器链。注意，如果目标bean和代理是分开定义了，你的代码甚至可以绕开代理直接和原生bean通信。
+				 * 因此，在初始化方法上使用拦截器将产生未知的结果，因为这将目标bean和它的代理/拦截器的生命周期绑定并且留下了和初始bean直接通信这样奇怪的方式。
+				 *
+				 * 对于循环引用，earlySingletonExposure = true，我们注意到 {@link AbstractAutoProxyCreator#postProcessAfterInitialization }
+				 * 我们会判断是否是 earlyProxyReferences，如是，则不应用wrapIfNecessary，而是返回原生Bean
+				 *
+				 * 这是因为对于 earlySingletonExposure，事实上在 populateBean 方法后面已经由{@link AbstractAutoProxyCreator.getEarlyBeanReference} 方法
+				 * 完成代理对象的创建并完成赋值。所以下文中，我们可以通过 getSingleton(beanName, false) 方法获得代理对象并赋值给exposedObject作为返回值
+				 *
+				 * 对于循环引用提前暴露的情况，我们则不进行aop的重复创建，直接对原始Bean应用，这也是为了下面进行 exposedObject == bean 的判断（如果应用了，也就不相等了）
+				 *
+				 * 由于 {@link #applyBeanPostProcessorsAfterInitialization(Object, String)} 是把每一次处理的结果作为参数传给下个BeanPostProcessor,且最后返回结果对象赋值给exposedObject
+				 * 此处可以看出对于非循环引用，代理会在此处创建，则有排序在后的applyBeanPostProcessorsAfterInitialization方法则会基于代理进行
+				 * 而对于循环引用，代理不在此处创建，那么所有的applyBeanPostProcessorsAfterInitialization方法都不基于代理进行
+				 *
 				 */
 				exposedObject = initializeBean(beanName, exposedObject, mbd);
 			}
@@ -557,6 +576,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (earlySingletonExposure) {
 			Object earlySingletonReference = getSingleton(beanName, false);
 			if (earlySingletonReference != null) {
+				/**
+				 * 	对于循环引用，我们已经把原始Bean或其代理设入了其它对象，这要求应用initializeBean时不能改变原始对象的引用。
+				 *  allowRawInjectionDespiteWrapping 是否在循环引用的情况下诉诸注入原始bean实例，即使注入的Bean最终被包裹了。(简单说就是是否允许两者不一致)
+				 *  
+ 				 */
 				if (exposedObject == bean) {
 					exposedObject = earlySingletonReference;
 				}

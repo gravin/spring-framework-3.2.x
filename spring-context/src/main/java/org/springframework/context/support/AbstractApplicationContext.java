@@ -468,9 +468,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				 * 这个时候bean还没有初始化，只是定好了BeanDefinition，
 				 * 在BeanFactoryPostProcessor接口的postProcessBeanFactory方法中，我们可以修改bean的定义信息，例如修改属性的值，修改bean的scope为单例或者多例。
 				 *
-				 * BeanPostProcessor则是bean初始化前后对bean的一些操作，意思就是说bean在调用构造之后，初始化方法前后进行一些操作。
-				 *
-				 * BeanPostProcessor 可以对已经实例化，但还没有属性注入，在初始化方法调用前后进行修改
+				 * BeanPostProcessor 可以对已经实例化，完成属性注入（IOC）之后，调用init-method前后 进行修改
+				 * 具体顺序见 {@link AbstractAutowireCapableBeanFactory#doCreateBean(String, RootBeanDefinition, Object[])} 的注释
 				 * BeanFactoryPostProcessor的继承接口BeanDefinitionRegistryPostProcessor  只能对BeanDefinition进行修改，因为如果用getBean方法去修改Bean实例，会把生命周期搞乱。
 				 *
 				 * 观察方法对于beanFactoryPostProcessors的执行顺序是比较混乱的的：
