@@ -103,7 +103,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 					 * @see org.springframework.beans.factory.support.AbstractBeanFactory#getType(String)
 					 * 使用 getSingleton(beanName, false) 保证不调用 singletonFactory.getObject()
 					 * 如果实例中没有，则查看beanDefinition中的targetType
-					 * 再调用所有 SmartInstantiationAwareBeanPostProcessor 的 predictBeanType
+					 * 再调用所有 SmartInstantiationAwareBeanPostProcessor 的 predictBeanType(由于getBean(beanName)最后也有可能返回的实际类型是由postProcessorAfterInit截胡，那这里类型也要判断是否给截胡
 					 * @see org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#predictBeanType(String, RootBeanDefinition, Class[])
 					 */
 					Class beanType = this.beanFactory.getType(beanName);
@@ -115,7 +115,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 						// 主要存储aspectName, pointCut,以及从beanType得到的 AjType AjTypeSystem.getAjType(currClass);
 						AspectMetadata amd = new AspectMetadata(beanType, beanName);
 						if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
-							// 主要包装了beanFactory,name,aspectMetadata 以及 aspectInstance
+							// 主要包装了beanFactory,name 进而获得了type构造出aspectMetadata 设为属性 并 添加了可以用来获取 aspectInstance 的方法
 							//  public Object getAspectInstance() {
 							//		return this.beanFactory.getBean(this.name);
 							//	}

@@ -137,7 +137,7 @@ public abstract class AbstractAspectJAdvisorFactory implements AspectJAdvisorFac
 	}
 
 	public void validate(Class<?> aspectClass) throws AopConfigException {
-		// If the parent has the annotation and isn't abstract it's an error
+		// If the parent has the annotation and isn't abstract it's an error todo 不能继承Aspect标注的类，这可能是AspectJ的一些设定吧
 		if (aspectClass.getSuperclass().getAnnotation(Aspect.class) != null &&
 				!Modifier.isAbstract(aspectClass.getSuperclass().getModifiers())) {
 			throw new AopConfigException("[" + aspectClass.getName() + "] cannot extend concrete aspect [" +
@@ -148,7 +148,7 @@ public abstract class AbstractAspectJAdvisorFactory implements AspectJAdvisorFac
 		if (!ajType.isAspect()) {
 			throw new NotAnAtAspectException(aspectClass);
 		}
-		if (ajType.getPerClause().getKind() == PerClauseKind.PERCFLOW) {
+		if (ajType.getPerClause().getKind() == PerClauseKind.PERCFLOW) {  // todo 可以看下 aspectj是如何实现PERCFLOW的，这应该有些意思
 			throw new AopConfigException(aspectClass.getName() + " uses percflow instantiation model: " +
 					"This is not supported in Spring AOP.");
 		}

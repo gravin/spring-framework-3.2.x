@@ -97,11 +97,17 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 
 		// We need to wrap the MetadataAwareAspectInstanceFactory with a decorator
 		// so that it will only instantiate once.
+		// 主要是实现了 getAspectInstance方法，作用一是保存实例化后的对象在 materialized 中，
+		// 二是在getAspectInstance时加锁，如果父类没有提供锁，那么用自身this为锁，如果父类有提供锁，用父类锁
+		// todo 没看明白，父类加锁的场景 BeanFactoryAspectInstanceFactory#getAspectCreationMutex
 		final MetadataAwareAspectInstanceFactory lazySingletonAspectInstanceFactory =
 				new LazySingletonAspectInstanceFactoryDecorator(maaif);
 
 		final List<Advisor> advisors = new LinkedList<Advisor>();
 		for (Method method : getAdvisorMethods(aspectClass)) {
+			/** getAdvisorMethods 返回类的所有方法公私有等等（并用递归返回父类，父接口的所有方法)，但这些方法会剔除@PointCut标注的方法
+			 *  获得方法后，参看 InstanceComparator 的排序规则， 按照@Before @.. 排序，其它不在列表中的，排在最后
+			 */
 			Advisor advisor = getAdvisor(method, lazySingletonAspectInstanceFactory, advisors.size(), aspectName);
 			if (advisor != null) {
 				advisors.add(advisor);
@@ -135,7 +141,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 				}
 			}
 		});
-		Collections.sort(methods, METHOD_COMPARATOR); // 使用 CompoundComparator， 先按 Annotation比较，再按方法名比较，这是一个多个比较器使用的好方法
+		Collections.sort(methods, METHOD_COMPARATOR); // 使用 CompoundComparator， 先按 Annotation比较，再按方法名比较，这是一个多个比较器使用的好方法（层层包装很精彩）
 		return methods;
 	}
 
@@ -187,6 +193,20 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 	}
 
 	private AspectJExpressionPointcut getPointcut(Method candidateAdviceMethod, Class<?> candidateAspectClass) {
+		/** 此处方法获取方法上的注解实例，并包装成AspectJAnnotation实例
+		 * 主要有
+		 *  annotation  原始注解实例
+		 *  annotationType AspectJAnnotationType类型的枚举
+		 *  pointcutExpression 注解实例的value或者pointcut的值
+		 *  argumentNames 注解实例的argumentNames的值 (argumentNames 用途见 aspectJ Before上的说明，即@Before标注的Advice方法参数名称在运行时可能获取不到，是为这准备的)
+		 */
+		/**
+		 * When compiling without debug info, or when interpreting pointcuts at runtime,
+		 * the names of any arguments used in the advice declaration are not available.
+		 * Under these circumstances only, it is necessary to provide the arg names in
+		 * the annotation - these MUST duplicate the names used in the annotated method.
+		 * Format is a simple comma-separated list.
+		 */
 		AspectJAnnotation<?> aspectJAnnotation =
 				AbstractAspectJAdvisorFactory.findAspectJAnnotationOnMethod(candidateAdviceMethod);
 		if (aspectJAnnotation == null) {
