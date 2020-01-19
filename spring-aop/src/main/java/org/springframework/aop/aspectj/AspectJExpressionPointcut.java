@@ -110,7 +110,7 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 
 	private transient ClassLoader pointcutClassLoader;
 
-	private transient PointcutExpression pointcutExpression;
+	private transient PointcutExpression pointcutExpression; // Aspectj的PointcutExpression对象，由checkReadyToMatch方法将expression转化
 
 	private transient Map<Method, ShadowMatch> shadowMatchCache = new ConcurrentHashMap<Method, ShadowMatch>(32);
 
@@ -184,9 +184,11 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 			throw new IllegalStateException("Must set property 'expression' before attempting to match");
 		}
 		if (this.pointcutExpression == null) {
+			// beanFactory 为空， 构造函数未传
 			this.pointcutClassLoader = (this.beanFactory instanceof ConfigurableBeanFactory ?
 					((ConfigurableBeanFactory) this.beanFactory).getBeanClassLoader() :
 					ClassUtils.getDefaultClassLoader());
+			// todo 此处构造aspectj pointcutExpression, 要看下 BeanNamePointcutDesignatorHandler 的作用
 			this.pointcutExpression = buildPointcutExpression(this.pointcutClassLoader);
 		}
 	}
@@ -195,12 +197,14 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 	 * Build the underlying AspectJ pointcut expression.
 	 */
 	private PointcutExpression buildPointcutExpression(ClassLoader classLoader) {
+		// todo 此处调用 aspectj 原生方法了
 		PointcutParser parser = initializePointcutParser(classLoader);
 		PointcutParameter[] pointcutParameters = new PointcutParameter[this.pointcutParameterNames.length];
 		for (int i = 0; i < pointcutParameters.length; i++) {
 			pointcutParameters[i] = parser.createPointcutParameter(
 					this.pointcutParameterNames[i], this.pointcutParameterTypes[i]);
 		}
+		// spring 简单的作了下 replaceBooleanOperators， 然后交由aspectj去parse
 		return parser.parsePointcutExpression(replaceBooleanOperators(getExpression()),
 				this.pointcutDeclarationScope, pointcutParameters);
 	}
@@ -212,6 +216,7 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 		PointcutParser parser = PointcutParser
 				.getPointcutParserSupportingSpecifiedPrimitivesAndUsingSpecifiedClassLoaderForResolution(
 						SUPPORTED_PRIMITIVES, cl);
+		// todo s此处设置 BeanNamePointcutDesignatorHandler， 看下作用
 		parser.registerPointcutDesignatorHandler(new BeanNamePointcutDesignatorHandler());
 		return parser;
 	}

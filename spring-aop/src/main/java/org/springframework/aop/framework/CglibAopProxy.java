@@ -281,6 +281,11 @@ final class CglibAopProxy implements AopProxy, Serializable {
 	}
 
 	private Callback[] getCallbacks(Class<?> rootClass) throws Exception {
+		// cglib callback 有多种形式，如下, 此处应用场景不错
+		// FixedValue，InvocationHandler，LazyLoader，MethodInterceptor，Dispatcher，NoOp
+		// https://blog.csdn.net/zhang6622056/article/details/87286498
+		// http://mydailyjava.blogspot.com/2013/11/cglib-missing-manual.html
+		// 经测试cglib对私有及final均不会代理
 		// Parameters used for optimisation choices...
 		boolean exposeProxy = this.advised.isExposeProxy();
 		boolean isFrozen = this.advised.isFrozen();
@@ -298,6 +303,7 @@ final class CglibAopProxy implements AopProxy, Serializable {
 					new DynamicUnadvisedExposedInterceptor(this.advised.getTargetSource());
 		}
 		else {
+			// isStatic 含义参考 TargetSource 接口， 是指每次请求 getTarget 都返回相同值，单例显然就满足 isStatic
 			targetInterceptor = isStatic ?
 					new StaticUnadvisedInterceptor(this.advised.getTargetSource().getTarget()) :
 					new DynamicUnadvisedInterceptor(this.advised.getTargetSource());
@@ -305,6 +311,7 @@ final class CglibAopProxy implements AopProxy, Serializable {
 
 		// Choose a "direct to target" dispatcher (used for
 		// unadvised calls to static targets that cannot return this).
+		// todo 具体作用？
 		Callback targetDispatcher = isStatic ?
 				new StaticDispatcher(this.advised.getTargetSource().getTarget()) : new SerializableNoOp();
 
