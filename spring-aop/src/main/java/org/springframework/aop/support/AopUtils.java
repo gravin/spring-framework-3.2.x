@@ -291,6 +291,7 @@ public abstract class AopUtils {
 				// already processed
 				continue;
 			}
+			// todo 此处是否适用还与是否有引入增强相关，why？
 			if (canApply(candidate, clazz, hasIntroductions)) {
 				eligibleAdvisors.add(candidate);
 			}

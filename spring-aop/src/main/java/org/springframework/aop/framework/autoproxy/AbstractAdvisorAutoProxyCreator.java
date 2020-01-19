@@ -84,7 +84,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #extendAdvisors
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class beanClass, String beanName) {
-		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		List<Advisor> candidateAdvisors = findCandidateAdvisors();// 获取所有标注@Aspect类下的，所有标注了@Before等的方法增强器
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
 		// 此处添加ExposeInvocationInterceptor.ADVISOR，只能添加在第一个，用来保存MethodInvocation
 		// 后面需要使用原始的 MethodInvocation时，就可以从ThreadLocal中取出使用

@@ -65,11 +65,12 @@ class InstantiationModelAwarePointcutAdvisorImpl
 
 	public InstantiationModelAwarePointcutAdvisorImpl(AspectJAdvisorFactory af, AspectJExpressionPointcut ajexp,
 			MetadataAwareAspectInstanceFactory aif, Method method, int declarationOrderInAspect, String aspectName) {
-
+// Advisor:获取aspectJ的Advice, PointcutAdvisor：增加获取spring自定义的PointCut获取方法,
+// todo InstantiationModelAwarePointcutAdvisor 指明advice是否instantiated (这嘛意思？InstantiationModel还有啥模式不成？)
 		this.declaredPointcut = ajexp;    // AspectJExpressionPointcut
-		this.method = method;            // advice方法 java.lang.reflect.Method@79ee779c{public void com.codeanalysis.aop.AspectJTest.beforeTest()}
-		this.atAspectJAdvisorFactory = af; // ReflectiveAspectJAdvisorFactory
-		this.aspectInstanceFactory = aif; /** @see LazySingletonAspectInstanceFactoryDecorator **/
+		this.method = method;            // 增强器方法 java.lang.reflect.Method@79ee779c{public void com.codeanalysis.aop.AspectJTest.beforeTest()}
+		this.atAspectJAdvisorFactory = af; // ReflectiveAspectJAdvisorFactory 虽然此处传了this进来，但事实上ReflectiveAspectJAdvisorFactory没有存任何变量,其构造函数也是默认的
+		this.aspectInstanceFactory = aif; /** @see LazySingletonAspectInstanceFactoryDecorator 用来获取aspectInstance**/
 		this.declarationOrder = declarationOrderInAspect;
 		this.aspectName = aspectName;
 

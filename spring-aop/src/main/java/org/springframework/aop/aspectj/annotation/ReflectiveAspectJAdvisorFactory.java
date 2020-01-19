@@ -106,7 +106,14 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		final List<Advisor> advisors = new LinkedList<Advisor>();
 		for (Method method : getAdvisorMethods(aspectClass)) {
 			/** getAdvisorMethods 返回类的所有方法公私有等等（并用递归返回父类，父接口的所有方法)，但这些方法会剔除@PointCut标注的方法
+			 *  因为PointCut标注的方法只是为了填写切入点表达式，不会用于创建Advisor
 			 *  获得方法后，参看 InstanceComparator 的排序规则， 按照@Before @.. 排序，其它不在列表中的，排在最后
+			 *  Advisor
+			 *  "org.springframework.aop.aspectj.annotation.InstantiationModelAwarePointcutAdvisorImpl@726d8fa0{
+			 *  InstantiationModelAwarePointcutAdvisor:
+			 *  expression [test()];  ----此处仅仅是标注在＠Before,@After等中的表达式而已，不是@PointCut中的表达式
+			 *  advice method [public void com.codeanalysis.aop.AspectJTest.beforeTest()];
+			 *  perClauseKind=SINGLETON}"
 			 */
 			Advisor advisor = getAdvisor(method, lazySingletonAspectInstanceFactory, advisors.size(), aspectName);
 			if (advisor != null) {
@@ -115,12 +122,13 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		}
 
 		// If it's a per target aspect, emit the dummy instantiating aspect.
+		// todo isLazilyInstantiated 情况下发生什么要看下， 判断是是对 per target的，在此处提前创建一个Aspect对象
 		if (!advisors.isEmpty() && lazySingletonAspectInstanceFactory.getAspectMetadata().isLazilyInstantiated()) {
 			Advisor instantiationAdvisor = new SyntheticInstantiationAdvisor(lazySingletonAspectInstanceFactory);
 			advisors.add(0, instantiationAdvisor);
 		}
 
-		// Find introduction fields.
+		// Find introduction fields. todo 引入增强要看下
 		for (Field field : aspectClass.getDeclaredFields()) {
 			Advisor advisor = getDeclareParentsAdvisor(field);
 			if (advisor != null) {
@@ -182,6 +190,8 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		 * 上述两方法分别调用下面的aspectj原生方法来检测
 		 * 调用aspectj原生方法 this.pointcutExpression.couldMatchJoinPointsInType去检测连接点类型是否合适
 		 * 调用aspectj原生方法 shadowMatch = this.pointcutExpression.matchesMethodExecution(targetMethod)去检测连接点方法是否合适
+		 * "org.springframework.aop.aspectj.AspectJExpressionPointcut@691eb389{AspectJExpressionPointcut: () test()}"
+		 * 此处是@Before,@After等标注中的表达式，不是@PointCut中的表达式
 		 */
 		AspectJExpressionPointcut ajexp =
 				getPointcut(candidateAdviceMethod, aif.getAspectMetadata().getAspectClass());
@@ -212,6 +222,10 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		if (aspectJAnnotation == null) {
 			return null;
 		}
+		/** AspectJExpressionPointcut：
+		 * pointcutDeclarationScope  即@Aspect标注的类
+		 * expression 即@Before("test()")中的value/pointcut字符值
+		 */
 		AspectJExpressionPointcut ajexp =
 				new AspectJExpressionPointcut(candidateAspectClass, new String[0], new Class[0]);
 		ajexp.setExpression(aspectJAnnotation.getPointcutExpression());
@@ -247,6 +261,8 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 
 		switch (aspectJAnnotation.getAnnotationType()) {
 			case AtBefore:
+				// candidateAdviceMethod 增强器方法，ajexp 增强器表达式（切入点表达式）,aif 获取@spect类实例的工厂 LazySingletonAspectInstanceFactoryDecorator
+				// 具体切入点类型用类来表达，所以在ajexp仅仅储存了@Aspect类以及表达式字符串
 				springAdvice = new AspectJMethodBeforeAdvice(candidateAdviceMethod, ajexp, aif);
 				break;
 			case AtAfter:
